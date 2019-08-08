@@ -1,0 +1,80 @@
+#+TITLE: Read-Only Root Filesystem For Raspberry Pi
+#+AUTHOR: Adam Schwartz
+#+DATE: August  6, 2019
+#+OPTIONS: ':true *:true toc:nil num:nil
+
+* Description
+Running a Raspberry Pi as a server has a few drawbacks, one of which is
+dealing with unexpected power-loss. If the Raspberry Pi is not able to
+shutdown gracefully it may corrupt the root filesystem or possibly
+damage the underlying SD card.
+
+One way of mitigating this problem is to mount the root filesystem
+read-only during boot and perform all writes directly in memory.
+Although this means you will have to remount =/= to install and
+configure new packages or change any files, this will help keep the
+root filesystem and SD card intact.
+
+Fortunately, this =root-ro= script takes care of all the
+=initramfs-tools= configuration needed to get a Raspberry Pi running on
+a read-only root filesystem.
+
+* Installation
+Make sure =initramfs-tools= are installed:
+#+BEGIN_SRC sh
+ls /etc/initramfs-tools
+ls /usr/share/initramfs-tools
+#+END_SRC
+
+Follow the directions in =root-ro= and remember to backup any file
+you're about to modify *before* running these commands:
+#+BEGIN_SRC sh
+cp root-ro /etc/initramfs-tools/scripts/init-bottom/root-ro
+chmod 0755 /etc/initramfs-tools/scripts/init-bottom/root-ro
+echo overlay >> /etc/initramfs-tools/scripts/modules
+mkinitramfs -o /boot/initrd
+
+sed -i '$s/$/ root-ro=overlay/' /boot/cmdline.txt
+
+cat <<EOF >>/boot/config.txt
+initramfs initrd followkernel
+ramfsfile=initrd
+ramfsaddr=-1
+#+END_SRC
+
+Reboot and see how things look:
+#+BEGIN_SRC sh
+lsblk
+mount | grep overlay
+mount | grep /dev
+#+END_SRC
+
+#+BEGIN_SRC text
+NAME        MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+mmcblk0     179:0    0 14.9G  0 disk
+├─mmcblk0p1 179:1    0  256M  0 part /boot
+└─mmcblk0p2 179:2    0 14.6G  0 part /mnt/root-ro
+
+overlay on / type overlay (rw,relatime,lowerdir=/mnt/root-ro,upperdir=/mnt/root-rw/upper,workdir=/mnt/root-rw/work)
+/dev/mmcblk0p2 on /mnt/root-ro type ext4 (ro,relatime)
+#+END_SRC
+
+There are a few ways to go back to a read/write root filesystem:
+- add the kernel boot parameter =disable-root-ro=true= in =/boot/cmdline.txt=
+- create this magic file: =/mnt/root-ro/disable-root-ro=
+- remount =/=: =mount -o remount,rw /mnt/root-ro=
+- similarly, you can remount as read-only with =mount -o remount,ro /mnt/root-ro=
+
+Return to read/write:
+#+BEGIN_SRC sh
+mount -o remount,rw /mnt/root-ro
+touch /mnt/root-ro/disable-root-ro
+reboot
+#+END_SRC
+
+Use NTP to sync time and date:
+#+BEGIN_SRC sh
+timedatectl set-ntp True
+timedatectl set-timezone America/New_York
+timedatectl status
+#+END_SRC
