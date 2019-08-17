@@ -85,7 +85,7 @@ On the Raspberry Pi:
 aptitude install nfs-kernel-server
 mkdir /mnt/drive
 mount /dev/sda1 /mnt/drive
-echo "/mnt/drive *(rw,sync,no_subtree_check)" > /etc/exports
+echo "/mnt/drive *(rw,sync,no_subtree_check)" >> /etc/exports
 service nfs-kernel-server start
 exportfs -a
 #+END_SRC
