@@ -61,18 +61,20 @@ overlay on / type overlay (rw,relatime,lowerdir=/mnt/root-ro,upperdir=/mnt/root-
 
 There are a few ways to go back to a read/write root filesystem:
 - add the kernel boot parameter =disable-root-ro=true= in =/boot/cmdline.txt=
-- create this magic file: =/mnt/root-ro/disable-root-ro=
+- create this magic file and reboot: =/mnt/root-ro/disable-root-ro=
 - remount =/=: =mount -o remount,rw /mnt/root-ro=
 - similarly, you can remount as read-only with =mount -o remount,ro /mnt/root-ro=
 
-* Return to read/write:
+* Return to read/write
 #+BEGIN_SRC sh
 mount -o remount,rw /mnt/root-ro
+
+# Or...
 touch /mnt/root-ro/disable-root-ro
 reboot
 #+END_SRC
 
-* Use NTP to sync time and date:
+* Use NTP to sync time and date
 #+BEGIN_SRC sh
 timedatectl set-ntp True
 timedatectl set-timezone America/New_York
@@ -80,9 +82,9 @@ timedatectl status
 #+END_SRC
 
 * Setting up NFS
-On the Raspberry Pi:
+On the Raspberry Pi
 #+BEGIN_SRC sh
-aptitude install nfs-kernel-server
+apt install nfs-kernel-server
 mkdir /mnt/drive
 mount /dev/sda1 /mnt/drive
 echo "/mnt/drive *(rw,sync,no_subtree_check)" >> /etc/exports
@@ -90,9 +92,9 @@ service nfs-kernel-server start
 exportfs -a
 #+END_SRC
 
-On client:
+On client
 #+BEGIN_SRC sh
-aptitude install nfs-common
+apt install nfs-common
 mkdir -p /mnt/nfs/pi
 mount -o rw,hard,nolock pi:/mnt/drive /mnt/nfs/pi/
 #+END_SRC
