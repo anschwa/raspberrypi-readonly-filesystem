@@ -11,35 +11,36 @@ damage the underlying SD card.
 
 One way of mitigating this problem is to mount the root filesystem
 read-only during boot and perform all writes directly in memory.
-Although this means you will have to remount =/= to install and
+Although this means you will have to remount ~/~ to install and
 configure new packages or change any files, this will help keep the
 root filesystem and SD card intact.
 
-Fortunately, this =root-ro= script takes care of all the
-=initramfs-tools= configuration needed to get a Raspberry Pi running on
+Fortunately, this ~root-ro~ script takes care of all the
+~initramfs-tools~ configuration needed to get a Raspberry Pi running on
 a read-only root filesystem.
 
 * Installation
-Make sure =initramfs-tools= are installed:
+Make sure ~initramfs-tools~ are installed:
 #+BEGIN_SRC sh
 ls /etc/initramfs-tools
 ls /usr/share/initramfs-tools
 #+END_SRC
 
-Follow the directions in =root-ro= and remember to backup any file
+Follow the directions in ~root-ro~ and remember to backup any file
 you're about to modify *before* running these commands:
 #+BEGIN_SRC sh
 cp root-ro /etc/initramfs-tools/scripts/init-bottom/root-ro
 chmod 0755 /etc/initramfs-tools/scripts/init-bottom/root-ro
-echo overlay >> /etc/initramfs-tools/scripts/modules
+echo overlay >> /etc/initramfs-tools/modules
 mkinitramfs -o /boot/initrd
 
-sed -i '$s/$/ root-ro=overlay/' /boot/cmdline.txt
+sed -i '$s/$/ root-ro-driver=overlay/' /boot/cmdline.txt
 
 cat <<EOF >>/boot/config.txt
 initramfs initrd followkernel
 ramfsfile=initrd
 ramfsaddr=-1
+EOF
 #+END_SRC
 
 Reboot and see how things look:
@@ -59,20 +60,11 @@ overlay on / type overlay (rw,relatime,lowerdir=/mnt/root-ro,upperdir=/mnt/root-
 /dev/mmcblk0p2 on /mnt/root-ro type ext4 (ro,relatime)
 #+END_SRC
 
-There are a few ways to go back to a read/write root filesystem:
-- add the kernel boot parameter =disable-root-ro=true= in =/boot/cmdline.txt=
-- create this magic file and reboot: =/mnt/root-ro/disable-root-ro=
-- remount =/=: =mount -o remount,rw /mnt/root-ro=
-- similarly, you can remount as read-only with =mount -o remount,ro /mnt/root-ro=
+* Returning to read/write root filesystem
+- option 1: add the kernel boot parameter ~disable-root-ro=true~ in ~/boot/cmdline.txt~ then reboot
+- option 2: create the magic file ~/disable-root-ro~ and reboot
 
-* Return to read/write
-#+BEGIN_SRC sh
-mount -o remount,rw /mnt/root-ro
-
-# Or...
-touch /mnt/root-ro/disable-root-ro
-reboot
-#+END_SRC
+Removing the magic file or boot option will return to a read-only filesystem on the next boot.
 
 * Use NTP to sync time and date
 #+BEGIN_SRC sh
